@@ -65,13 +65,16 @@ public class EmpDeptSalgradeTests
     {
         var result = Database
             .GetEmps()
-            .Select(emp => new { emp.EName, emp.Sal });
+            .Select(emp => new { emp.EName, emp.Sal })
+            .ToList();
 
         Assert.All(result, r =>
         {
             Assert.False(string.IsNullOrWhiteSpace(r.EName));
             Assert.True(r.Sal > 0);
         });
+        
+        Assert.Equal(5, result.Count);
     }
 
 
@@ -83,12 +86,13 @@ public class EmpDeptSalgradeTests
         var emps = Database.GetEmps();
         var depts = Database.GetDepts();
 
-        var result = emps.Join(
-            depts,
-            emp => emp.DeptNo,
-            dept => dept.DeptNo,
-            (e, d) => new { e.EName, d.DName }
-        );
+        var result = emps
+            .Join(
+                depts,
+                emp => emp.DeptNo,
+                dept => dept.DeptNo,
+                (e, d) => new { e.EName, d.DName }
+            ).ToList();
 
         Assert.Contains(result, r => r.DName == "SALES" && r.EName == "ALLEN");
         Assert.Contains(result, r => r.DName == "SALES" && r.EName == "WARD");
@@ -133,7 +137,10 @@ public class EmpDeptSalgradeTests
             .ToList();
 
 
+        Assert.Equal(2, result.Count);
         Assert.All(result, r => Assert.NotNull(r.Comm));
+        Assert.Contains(result, r => r.EName == "ALLEN");
+        Assert.Contains(result, r => r.EName == "WARD");
     }
 
 
@@ -183,6 +190,8 @@ public class EmpDeptSalgradeTests
             })
             .ToList();
 
+        Assert.Contains(result, r => r.DeptNo == 10 && r.AvgSal == 5000);
+        Assert.Contains(result, r => r.DeptNo == 20 && r.AvgSal == 800);
         Assert.Contains(result, r => r.DeptNo == 30 && r.AvgSal > 1000);
         Assert.DoesNotContain(result, r => r.DeptNo == 40);
     }
@@ -203,9 +212,12 @@ public class EmpDeptSalgradeTests
                         .Average(inner => inner.Sal)
                 )
             )
-            .Select(e => e.EName);
+            .Select(e => e.EName)
+            .ToList();
 
 
         Assert.Contains("ALLEN", result);
+        Assert.DoesNotContain(result, r => r == "KING");
+        Assert.DoesNotContain(result, r => r == "FORD");
     }
 }

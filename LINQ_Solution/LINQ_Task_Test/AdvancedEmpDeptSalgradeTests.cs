@@ -58,8 +58,10 @@ public class AdvancedEmpDeptSalgradeTests
             .Select(emp => emp.Job)
             .ToList(); 
         
+        Assert.Equal(3, jobs.Count);
         Assert.Contains("PRESIDENT", jobs);
         Assert.Contains("SALESMAN", jobs);
+        Assert.Contains("CLERK", jobs);
     }
 
     // 15. Employees with managers (NOT NULL Mgr)
@@ -69,9 +71,11 @@ public class AdvancedEmpDeptSalgradeTests
     {
         var emps = Database.GetEmps();
 
-        var withMgr = emps.Where(emp => emp.Mgr != null).ToList(); 
+        var result = emps.Where(emp => emp.Mgr != null).ToList(); 
         
-        Assert.All(withMgr, e => Assert.NotNull(e.Mgr));
+        Assert.Equal(4, result.Count);
+        Assert.All(result, e => Assert.NotNull(e.Mgr));
+        Assert.DoesNotContain(result, r => r.EName == "KING" || r.Job == "PRESIDENT");
     }
 
     // 16. All employees earn more than 500
@@ -105,13 +109,15 @@ public class AdvancedEmpDeptSalgradeTests
     {
         var emps = Database.GetEmps();
 
-        var result = 
+        var result = (
             from e in emps
             from m in emps
             where e.Mgr == m.EmpNo
-            select new {Employee = e.EName, Manager = m.EName};
+            select new {Employee = e.EName, Manager = m.EName}).ToList();
         
         Assert.Contains(result, r => r.Employee == "SMITH" && r.Manager == "FORD");
+        Assert.Contains(result, r => r.Employee == "FORD" && r.Manager == "KING");
+        Assert.DoesNotContain(result, r => r.Employee == "KING");
     }
 
     // 19. Let clause usage (sal + comm)
@@ -121,15 +127,20 @@ public class AdvancedEmpDeptSalgradeTests
     {
         var emps = Database.GetEmps();
 
-        var result = from emp in emps
+        var result = (from emp in emps
             let totalIncome = emp.Sal + (emp.Comm ?? 0)
             select new
             {
                 emp.EName,
                 Total = totalIncome
-            };
+            }).ToList();
         
+        Assert.Equal(emps.Count, result.Count);
+        Assert.Contains(result, r => r.EName == "SMITH" && r.Total == 800);
         Assert.Contains(result, r => r.EName == "ALLEN" && r.Total == 1900);
+        Assert.Contains(result, r => r.EName == "WARD" && r.Total == 1750);
+        Assert.Contains(result, r => r.EName == "FORD" && r.Total == 5000);
+        Assert.Contains(result, r => r.EName == "KING" && r.Total == 5000);
     }
 
     // 20. Join all three: Emp → Dept → Salgrade
@@ -147,7 +158,11 @@ public class AdvancedEmpDeptSalgradeTests
                 from s in grades
                 where s.Losal <= e.Sal && e.Sal <= s.Hisal
                 select new {e.EName, d.DName, s.Grade}; 
-
+        
+        Assert.Contains(result, r => r.EName == "SMITH" && r.DName == "RESEARCH" && r.Grade == 1);
         Assert.Contains(result, r => r.EName == "ALLEN" && r.DName == "SALES" && r.Grade == 3);
+        Assert.Contains(result, r => r.EName == "WARD" && r.DName == "SALES" && r.Grade == 2);
+        Assert.Contains(result, r => r.EName == "KING" && r.DName == "ACCOUNTING" && r.Grade == 5);
+        Assert.Contains(result, r => r.EName == "FORD" && r.DName == "ACCOUNTING" && r.Grade == 5);
     }
 }
